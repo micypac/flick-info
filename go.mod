@@ -1,3 +1,5 @@
 module github.com/micypac/flick-info
 
 go 1.22.3
+
+require github.com/julienschmidt/httprouter v1.3.0 // indirect
