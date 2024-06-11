@@ -6,6 +6,7 @@ import (
 )
 
 // Declare a custom Runtime type, which has underlying type int32.
+// This is used as a field in Movie struct and to customize the output format using the MarshalJSON method.
 type Runtime int32
 
 // Implement MarshalJSON() method on the Runtime type so it satisfies the json.Marshaler interface.
