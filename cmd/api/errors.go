@@ -33,6 +33,12 @@ func (app *application) serverErrorResponse(w http.ResponseWriter, r *http.Reque
 }
 
 
+// Used to send a 400 Bad Request status code and JSON response to the client.
+func (app *application) badRequestResponse(w http.ResponseWriter, r *http.Request, err error) {
+	app.errorResponse(w, r, http.StatusBadRequest, err.Error())
+}
+
+
 // Used to send a 404 Not Found status code and JSON response to the client.
 func (app *application) notFoundResponse(w http.ResponseWriter, r *http.Request) {
 	message := "the requested resource could not be found"
