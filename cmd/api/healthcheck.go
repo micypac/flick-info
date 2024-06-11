@@ -17,7 +17,6 @@ func (app *application) healthcheckHandler(w http.ResponseWriter, r *http.Reques
 	// Pass the map to the json.Marshal() function. This returns a []byte slice containing the encoded JSON.
 	err := app.writeJSON(w, http.StatusOK, env, nil)
 	if err != nil {
-		app.logger.Println(err)
-		http.Error(w, "The server encountered an error and could not process your request", http.StatusInternalServerError)
+		app.serverErrorResponse(w, r, err)
 	}
 }
