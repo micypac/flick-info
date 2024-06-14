@@ -113,7 +113,7 @@ func(app *application) updateMovieHandler(w http.ResponseWriter, r *http.Request
 		Title string `json:"title"`
 		Year int32 `json:"year"`
 		Runtime data.Runtime `json:"runtime"`
-		Genres []string `json:genres`
+		Genres []string `json:"genres"`
 	}
 
 	// Read JSON request body into the input struct.
@@ -151,4 +151,26 @@ func(app *application) updateMovieHandler(w http.ResponseWriter, r *http.Request
 }
 
 
+func (app *application) deleteMovieHandler(w http.ResponseWriter, r *http.Request) {
+	id, err := app.readIDParam(r)
+	if err != nil {
+		app.notFoundResponse(w, r)
+		return
+	}
 
+	err = app.models.Movies.Delete(id)
+	if err != nil {
+		switch {
+		case errors.Is(err, data.ErrRecordNotFound):
+			app.notFoundResponse(w, r)
+		default:
+			app.serverErrorResponse(w, r, err)
+		}
+		return
+	}
+
+	err = app.writeJSON(w, http.StatusOK, envelope{"message": "movie successfully deleted"}, nil)
+	if err != nil {
+		app.serverErrorResponse(w, r, err)
+	}
+}
