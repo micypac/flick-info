@@ -1,9 +1,12 @@
 package data
 
 import (
+	"database/sql"
 	"time"
 
 	"github.com/micypac/flick-info/internal/validator"
+
+	"github.com/lib/pq"
 )
 
 type Movie struct {
@@ -34,3 +37,41 @@ func ValidateMovie(v *validator.Validator, movie *Movie) {
 
 	v.Check(validator.Unique(movie.Genres), "genres", "must not contain duplicate values")
 }
+
+
+type MovieModel struct {
+	DB *sql.DB
+}
+
+
+// Insert method accepts a pointer to a Movie struct which contain data for the new record.
+func (m MovieModel) Insert(movie *Movie) error {
+	stmt := `
+		INSERT INTO movies (title, year, runtime, genres)
+		VALUES ($1, $2, $3, $4)
+		RETURNING id, created_at, version
+	`
+
+	// Create a slice containing the values for the placeholder parameters from the Movie struct.
+	args := []interface{}{movie.Title, movie.Year, movie.Runtime, pq.Array(movie.Genres)}
+
+	// Use the QueryRow() method to execute the SQL statement on the connection pool, passing in the args
+	// as a variadic parameter and scanning the system-generated values into the movie struct.
+	return m.DB.QueryRow(stmt, args...).Scan(&movie.ID, &movie.CreatedAt, &movie.Version)
+}
+
+
+func (m MovieModel) Get(id int64) (*Movie, error) {
+	return nil, nil
+}
+
+
+func (m MovieModel) Update(movie *Movie) error {
+	return nil
+}
+
+
+func (m MovieModel) Delete(id int64) error {
+	return nil
+}
+

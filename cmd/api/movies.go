@@ -41,9 +41,23 @@ func (app *application) createMovieHandler(w http.ResponseWriter, r *http.Reques
 		return
 	}
 
-	// Write the contents of the input struct to the HTTP response.
-	fmt.Fprintf(w, "%+v\n", input)
+	// Call the Insert() method on our movies model, passing in a pointer to the validated movie struct.
+	// This will create a db record and update the movie struct with the system-generated info.
+	err = app.models.Movies.Insert(movie)
+	if err != nil {
+		app.serverErrorResponse(w, r, err)
+		return
+	}
 
+	// Include a Location header to let the client know which URL they can find the newly-created resource at.
+	headers := make(http.Header)
+	headers.Set("Location", fmt.Sprintf("/v1/movies/%d", movie.ID))
+
+	// Write the JSON response with a 201 status code, movie data, and the location header.
+	err = app.writeJSON(w, http.StatusCreated, envelope{"movie": movie}, headers)
+	if err != nil {
+		app.serverErrorResponse(w, r, err)
+	}
 }
 
 

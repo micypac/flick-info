@@ -10,6 +10,8 @@ import (
 	"os"
 	"time"
 
+	"github.com/micypac/flick-info/internal/data"
+
 	_ "github.com/lib/pq"
 )
 
@@ -36,6 +38,7 @@ type config struct {
 type application struct {
 	config config
 	logger *log.Logger
+	models data.Models
 }
 
 
@@ -65,10 +68,11 @@ func main() {
 
 	logger.Printf("database connection pool established")
 
-	// Declare an instance of the application struct, containing the config struct and the logger.
+	// Declare an instance of the application struct, containing the config struct,logger, and models.
 	app := &application{
 		config: cfg,
 		logger: logger,
+		models: data.NewModels(db),
 	}
 
 	// HTTP server with timeout settings w/c listens to config port and uses the app.routes() as the handler.
