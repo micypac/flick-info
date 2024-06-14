@@ -2,6 +2,7 @@ package data
 
 import (
 	"database/sql"
+	"errors"
 	"time"
 
 	"github.com/micypac/flick-info/internal/validator"
@@ -62,7 +63,39 @@ func (m MovieModel) Insert(movie *Movie) error {
 
 
 func (m MovieModel) Get(id int64) (*Movie, error) {
-	return nil, nil
+	// The PostgreSQL bigserial type for the movie ID starts auto-incrementing at 1 by default.
+	if id < 1 {
+		return nil, ErrRecordNotFound
+	}
+
+	stmt := `
+		SELECT id, created_at, title, year, runtime, genres, version
+		FROM movies
+		WHERE id = $1
+	`
+	// Declare a Movie struct that will hold the returned data.
+	var movie Movie
+
+	err := m.DB.QueryRow(stmt, id).Scan(
+		&movie.ID,
+		&movie.CreatedAt,
+		&movie.Title,
+		&movie.Year,
+		&movie.Runtime,
+		pq.Array(&movie.Genres),
+		&movie.Version,
+	)
+
+	if err != nil {
+		switch {
+		case errors.Is(err, sql.ErrNoRows):
+			return nil, ErrRecordNotFound
+		default:
+			return nil, err
+		}
+	}
+
+	return &movie, nil
 }
 
 
