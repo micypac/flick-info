@@ -1,6 +1,7 @@
 package data
 
 import (
+	"context"
 	"database/sql"
 	"errors"
 	"time"
@@ -56,9 +57,13 @@ func (m MovieModel) Insert(movie *Movie) error {
 	// Create a slice containing the values for the placeholder parameters from the Movie struct.
 	args := []interface{}{movie.Title, movie.Year, movie.Runtime, pq.Array(movie.Genres)}
 
+	ctx, cancel := context.WithTimeout(context.Background(), 3 * time.Second)
+
+	defer cancel()
+
 	// Use the QueryRow() method to execute the SQL statement on the connection pool, passing in the args
 	// as a variadic parameter and scanning the system-generated values into the movie struct.
-	return m.DB.QueryRow(stmt, args...).Scan(&movie.ID, &movie.CreatedAt, &movie.Version)
+	return m.DB.QueryRowContext(ctx, stmt, args...).Scan(&movie.ID, &movie.CreatedAt, &movie.Version)
 }
 
 
@@ -76,7 +81,14 @@ func (m MovieModel) Get(id int64) (*Movie, error) {
 	// Declare a Movie struct that will hold the returned data.
 	var movie Movie
 
-	err := m.DB.QueryRow(stmt, id).Scan(
+	// Use context.WithTimeout() function to create a context w/c carries a 3sec timeout deadline.
+	ctx, cancel := context.WithTimeout(context.Background(), 3 * time.Second)
+
+	// Use defer to make sure we cancel the context before the Get() method returns.
+	defer cancel()
+
+	// Use QueryRowContext() method to exec the query, passing in the context with deadline.
+	err := m.DB.QueryRowContext(ctx, stmt, id).Scan(
 		&movie.ID,
 		&movie.CreatedAt,
 		&movie.Title,
@@ -116,7 +128,10 @@ func (m MovieModel) Update(movie *Movie) error {
 		movie.Version,
 	}
 
-	err := m.DB.QueryRow(stmt, args...).Scan(&movie.Version)
+	ctx, cancel := context.WithTimeout(context.Background(), 3 * time.Second)
+	defer cancel()
+
+	err := m.DB.QueryRowContext(ctx, stmt, args...).Scan(&movie.Version)
 	if err != nil {
 		switch {
 		case errors.Is(err, sql.ErrNoRows):
@@ -140,7 +155,10 @@ func (m MovieModel) Delete(id int64) error {
 		WHERE id = $1	
 	`
 
-	result, err := m.DB.Exec(stmt, id)
+	ctx, cancel := context.WithTimeout(context.Background(), 3 * time.Second)
+	defer cancel()
+
+	result, err := m.DB.ExecContext(ctx, stmt, id)
 	if err != nil {
 		return err
 	}
