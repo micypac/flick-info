@@ -191,7 +191,7 @@ func (app *application) deleteMovieHandler(w http.ResponseWriter, r *http.Reques
 }
 
 
-func (app *application) listMovieHandler(w http.ResponseWriter, r *http.Request) {
+func (app *application) listMoviesHandler(w http.ResponseWriter, r *http.Request) {
 	// Define input struct to hold expected values from the request query string. Embed the separate Filters struct.
 	var input struct {
 		Title string
@@ -211,7 +211,9 @@ func (app *application) listMovieHandler(w http.ResponseWriter, r *http.Request)
 	input.PageSize = app.readInt(qs, "page_size", 20, v)
 	input.Sort = app.readString(qs, "sort", "id")
 
-	if !v.Valid() {
+	input.Filters.SortSafeList = []string{"id", "title", "year", "runtime", "-id", "-title", "-year", "-runtime"}
+
+	if data.ValidateFilters(v, input.Filters); !v.Valid() {
 		app.failedValidationResponse(w, r, v.Errors)
 		return
 	}
