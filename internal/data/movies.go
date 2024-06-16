@@ -46,6 +46,61 @@ type MovieModel struct {
 }
 
 
+// GetAll() return a slice of movies.
+func(m MovieModel) GetAll(title string, genres []string, filters Filters) ([]*Movie, error) {
+	stmt := `
+		SELECT id, created_at, title, year, runtime, genres, version
+		FROM movies
+		ORDER BY id
+	`
+
+	ctx, cancel := context.WithTimeout(context.Background(), 3 * time.Second)
+	defer cancel()
+
+	rows, err := m.DB.QueryContext(ctx, stmt)
+	if err != nil {
+		return nil, err
+	}
+
+	// Defer rows.Close() to ensure the resultset is closed before method returns.
+	defer rows.Close()
+
+	// Initialize empty slice to hold the movies data.
+	movies := []*Movie{}
+
+	for rows.Next() {
+		// Init empty Movie struct to hold data for a movie.
+		var movie Movie
+
+		err := rows.Scan(
+			&movie.ID,
+			&movie.CreatedAt,
+			&movie.Title,
+			&movie.Year,
+			&movie.Runtime,
+			pq.Array(&movie.Genres),
+			&movie.Version,
+		)
+
+		if err != nil {
+			return nil, err
+		}
+
+		// Add the Movie struct to the movie slice.
+		movies = append(movies, &movie)
+	}
+
+	// When rows.Next() loop finished, call rows.Err() to retrieve any error that 
+	// was encounterd during the iteration.
+	if err = rows.Err(); err != nil {
+		return nil, err
+	}
+
+	return movies, nil
+
+
+}
+
 // Insert method accepts a pointer to a Movie struct which contain data for the new record.
 func (m MovieModel) Insert(movie *Movie) error {
 	stmt := `
