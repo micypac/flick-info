@@ -48,9 +48,9 @@ type MovieModel struct {
 
 
 // GetAll() return a slice of movies.
-func(m MovieModel) GetAll(title string, genres []string, filters Filters) ([]*Movie, error) {
+func(m MovieModel) GetAll(title string, genres []string, filters Filters) ([]*Movie, Metadata, error) {
 	stmt := fmt.Sprintf(`
-		SELECT id, created_at, title, year, runtime, genres, version
+		SELECT count(*) OVER(), id, created_at, title, year, runtime, genres, version
 		FROM movies
 		WHERE (to_tsvector('simple', title) @@ plainto_tsquery('simple', $1) OR $1 = '')
 		AND (genres @> $2 OR $2 = '{}')
@@ -63,9 +63,10 @@ func(m MovieModel) GetAll(title string, genres []string, filters Filters) ([]*Mo
 
 	rows, err := m.DB.QueryContext(ctx, stmt, title, pq.Array(genres), filters.limit(), filters.offset())
 	if err != nil {
-		return nil, err
+		return nil, Metadata{}, err
 	}
 
+	totalRecords := 0
 	// Defer rows.Close() to ensure the resultset is closed before method returns.
 	defer rows.Close()
 
@@ -77,6 +78,7 @@ func(m MovieModel) GetAll(title string, genres []string, filters Filters) ([]*Mo
 		var movie Movie
 
 		err := rows.Scan(
+			&totalRecords, // Scan the count from the window func into totalRecords.
 			&movie.ID,
 			&movie.CreatedAt,
 			&movie.Title,
@@ -87,7 +89,7 @@ func(m MovieModel) GetAll(title string, genres []string, filters Filters) ([]*Mo
 		)
 
 		if err != nil {
-			return nil, err
+			return nil, Metadata{}, err
 		}
 
 		// Add the Movie struct to the movie slice.
@@ -97,10 +99,14 @@ func(m MovieModel) GetAll(title string, genres []string, filters Filters) ([]*Mo
 	// When rows.Next() loop finished, call rows.Err() to retrieve any error that 
 	// was encounterd during the iteration.
 	if err = rows.Err(); err != nil {
-		return nil, err
+		return nil, Metadata{}, err
 	}
 
-	return movies, nil
+	// Generate a Metadata struct, passing in the total record count and 
+	// pagination parameters from the client.
+	metadata := calculateMetadata(totalRecords, filters.Page, filters.PageSize)
+	
+	return movies, metadata, nil
 
 
 }
