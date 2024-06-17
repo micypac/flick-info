@@ -46,3 +46,15 @@ func (f Filters) sortDirection() string {
 }
 
 
+// Return the number of records in a query.
+func (f Filters) limit() int {
+	return f.PageSize
+}
+
+
+// Return the starting record # from the query after it 'skipped' a number of records.
+func (f Filters) offset() int {
+	return (f.Page - 1) * f.PageSize
+}
+
+
