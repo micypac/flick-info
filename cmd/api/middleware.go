@@ -60,37 +60,44 @@ func (app *application) rateLimit(next http.Handler) http.Handler {
 	}()
 
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		// Extract the clients IP address from the request.
-		ip, _, err := net.SplitHostPort(r.RemoteAddr)
-		if err != nil {
-			app.serverErrorResponse(w, r, err)
-			return
-		}
+		// Carry out the rate limiting checks if the limiter is enabled.
+		if app.config.limiter.enabled {
+		
+			// Extract the clients IP address from the request.
+			ip, _, err := net.SplitHostPort(r.RemoteAddr)
+			if err != nil {
+				app.serverErrorResponse(w, r, err)
+				return
+			}
 
-		// Lock the mutex to ensure that the map access is safe.
-		mu.Lock()
+			// Lock the mutex to ensure that the map access is safe.
+			mu.Lock()
 
-		// Check if the IP address already exists in the map. 
-		// If it doesnt, create a new client instance with rate limiter to the map.
-		if _, found := clients[ip]; !found {
-			clients[ip] = &client{limiter: rate.NewLimiter(2, 4)}
-		}
+			// Check if the IP address already exists in the map. 
+			// If it doesnt, create a new client instance with rate limiter to the map.
+			if _, found := clients[ip]; !found {
+				clients[ip] = &client{
+					limiter: rate.NewLimiter(rate.Limit(app.config.limiter.rps), app.config.limiter.burst),
+				}
+			}
 
-		// Update the last seen time for the client.
-		clients[ip].lastSeen = time.Now()
+			// Update the last seen time for the client.
+			clients[ip].lastSeen = time.Now()
 
-		// Call the Allow() method on the rate limiter for the current IP address.
-		// If the request is not allowed, unlock the mutex and send a 429 Too Many Requests response.
-		if !clients[ip].limiter.Allow() {
+			// Call the Allow() method on the rate limiter for the current IP address.
+			// If the request is not allowed, unlock the mutex and send a 429 Too Many Requests response.
+			if !clients[ip].limiter.Allow() {
+				mu.Unlock()
+				app.rateLimitExceedResponse(w, r)
+				return
+			}
+
+			// Unlock the mutex before calling the next handler in the chain.
+			// DON'T use defer to unlock the mutex, as that would mean that the mutex isn't unlocked until all
+			// the handlers downstream of this middleware have also returned.
 			mu.Unlock()
-			app.rateLimitExceedResponse(w, r)
-			return
-		}
 
-		// Unlock the mutex before calling the next handler in the chain.
-		// DON'T use defer to unlock the mutex, as that would mean that the mutex isn't unlocked until all
-		// the handlers downstream of this middleware have also returned.
-		mu.Unlock()
+		}
 
 		next.ServeHTTP(w, r)
 	})
