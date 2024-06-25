@@ -1,6 +1,8 @@
 package main
 
 import (
+	"context"
+	"errors"
 	"fmt"
 	"net/http"
 	"os"
@@ -20,6 +22,9 @@ func (app *application) serve() error {
 		WriteTimeout: 30 * time.Second,
 	}
 
+	// Create a shutdownError channel. Use this to receive any errors returned by the graceful Shutdown() function.
+	shutdownError := make(chan error)
+
 	// Start a background goroutine.
 	go func() {
 		// Create a quit channel which carries os.Signal values.
@@ -34,12 +39,18 @@ func (app *application) serve() error {
 		s := <-quit
 
 		// Log a message to say that the signal has been caught.
-		app.logger.PrintInfo("caught signal", map[string]string{
+		app.logger.PrintInfo("shutting down server", map[string]string{
 			"signal": s.String(),
 		})
 
-		// Exit the application with a 0 (success) status code.
-		os.Exit(0)
+		// Create a context with a 5-second timeout.
+		ctx, cancel := context.WithTimeout(context.Background(), 5 * time.Second)
+		defer cancel()
+
+		// Call the Shutdown() method on our server, passing in the context.
+		// Shutdown() will return nil if the graceful shutdown was successful or an error (may happen
+		// because of problems closing the listener or the shutdown didn't happen before the 5sec deadline).
+		shutdownError <- srv.Shutdown(ctx)
 	}()
 
 	// Log the starting server message.
@@ -48,5 +59,25 @@ func (app *application) serve() error {
 		"addr": srv.Addr,
 	})
 
-	return srv.ListenAndServe()
+	// Calling server Shutdown() will cause ListenAndServe() to immediately return a http.ErrServerClosed error.
+	// This is an indication that the graceful shutdown has been initiated. Check specifically for this error
+	// only returning it if it is not http.ErrServerClosed.
+	err := srv.ListenAndServe()
+	if !errors.Is(err, http.ErrServerClosed) {
+		return err
+	}
+
+	// Otherwise wait to receive the return value from Shutdown() on the shutdownError channel.
+	// If the return value is an error, there was a problem with the graceful shutdown and we return it.
+	err = <-shutdownError
+	if err != nil {
+		return err
+	}
+
+	// At this point, the graceful shutdown was successful.
+	app.logger.PrintInfo("stopped server", map[string]string{
+		"addr": srv.Addr,
+	})
+
+	return nil
 }
