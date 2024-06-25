@@ -4,8 +4,6 @@ import (
 	"context"
 	"database/sql"
 	"flag"
-	"fmt"
-	"net/http"
 	"os"
 	"time"
 
@@ -87,24 +85,11 @@ func main() {
 	}
 
 	// HTTP server with timeout settings w/c listens to config port and uses the app.routes() as the handler.
-	srv := &http.Server{
-		Addr: fmt.Sprintf(":%d", cfg.port),
-		Handler: app.routes(),
-		IdleTimeout: time.Minute,
-		ReadTimeout: 10 * time.Second,
-		WriteTimeout: 30 * time.Second,
+	err = app.serve()
+	if err != nil {
+		logger.PrintFatal(err, nil)
 	}
-
-	// Start the HTTP server.
-	logger.PrintInfo("starting server", map[string]string{
-		"env": cfg.env, 
-		"addr":  srv.Addr,
-	})
-	err = srv.ListenAndServe()
-	logger.PrintFatal(err, nil)
-
 }
-
 
 // openDB() helper function returns a sql.DB connection pool.
 func openDB(cfg config) (*sql.DB, error) {
