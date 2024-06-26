@@ -57,6 +57,15 @@ func (app *application) registerUserHandler(w http.ResponseWriter, r *http.Reque
 		return
 	}
 
+
+	// Call the Send() method on the Mailer, passing in the user's email address,
+	// name of the template file, and the User struct containing the dynamic data.
+	err = app.mailer.Send(user.Email, "user_welcome.tmpl.html", user)
+	if err != nil {
+		app.serverErrorResponse(w, r, err)
+		return
+	}
+
 	err = app.writeJSON(w, http.StatusCreated, envelope{"user": user}, nil)
 	if err != nil {
 		app.serverErrorResponse(w, r, err)
