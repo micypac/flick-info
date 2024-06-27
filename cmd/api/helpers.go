@@ -173,7 +173,13 @@ func (app *application) readInt(qs url.Values, key string, defaultValue int, v *
 
 // background helper method accepts an arbitrary function as a parameter.
 func (app *application) background(fn func()) {
+	// Increment the wait group counter.
+	app.wg.Add(1)
+
 	go func() {
+		// Use defer to decrement the wait group counter when the goroutine completes.
+		defer app.wg.Done()
+		
 		// Recover any panic
 		defer func() {
 			if err := recover(); err != nil {
