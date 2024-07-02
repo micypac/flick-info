@@ -88,5 +88,68 @@ func (app *application) registerUserHandler(w http.ResponseWriter, r *http.Reque
 	if err != nil {
 		app.serverErrorResponse(w, r, err)
 	}	
+}
 
+
+func (app *application) activateUserHandler(w http.ResponseWriter, r *http.Request) {
+	// Parse the activation token from the request body.
+	var input struct {
+		TokenPlaintext	string `json:"token"`
+	}
+
+	err := app.readJSON(w, r, &input)
+	if err != nil {
+		app.badRequestResponse(w, r, err)
+		return
+	}
+
+	// Validate the plaintext token provided by the client.
+	v := validator.New()
+
+	if data.ValidateTokenPlaintext(v, input.TokenPlaintext); !v.Valid() {
+		app.failedValidationResponse(w, r, v.Errors)
+		return
+	}
+
+	// Retrieve the details of the user associated with the token using the GetForToken() method.
+	// If no matching record is found, let the client know the token provided is invalid.
+	user, err := app.models.Users.GetForToken(data.ScopeActivation, input.TokenPlaintext)
+	if err != nil {
+		switch {
+			case errors.Is(err, data.ErrRecordNotFound):
+				v.AddError("token", "invalid or expired activation token")
+				app.failedValidationResponse(w, r, v.Errors)
+			default:
+				app.serverErrorResponse(w, r, err)
+		}
+		return
+	}
+
+	// Update the user's activated status to true.
+	user.Activated = true
+
+	// Save the updated user record in the db, checking for any edit conflicts.
+	err = app.models.Users.Update(user)
+	if err != nil {
+		switch {
+			case errors.Is(err, data.ErrEditConflict):
+				app.editConflictResponse(w, r)
+			default:
+				app.serverErrorResponse(w, r, err)
+		}
+		return
+	}
+
+	// Delete all activation tokens for the user if everything is successful.
+	err = app.models.Tokens.DeleteAllForUser(data.ScopeActivation, user.ID)
+	if err != nil {
+		app.serverErrorResponse(w, r, err)
+		return
+	}
+
+	// Send updated user details in the JSON response.
+	err = app.writeJSON(w, http.StatusOK, envelope{"user": user}, nil)
+	if err != nil {
+		app.serverErrorResponse(w, r, err)
+	}
 }
