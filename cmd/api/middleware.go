@@ -196,3 +196,28 @@ func (app *application) requireActivatedUser(next http.HandlerFunc) http.Handler
 	// Wrap fn with the requireAuthenticatedUser() middleware.
 	return app.requireAuthenticatedUser(fn)
 }
+
+
+func (app *application) requirePermission(code string, next http.HandlerFunc) http.HandlerFunc {
+	fn := func(w http.ResponseWriter, r *http.Request) {
+		// Retrieve the user from the request context.
+		user := app.contextGetUser(r)
+
+		// Get the permissions slice for the user.
+		permissions, err := app.models.Permissions.GetAllForUser(user.ID)
+		if err != nil {
+			app.serverErrorResponse(w, r, err)
+			return
+		}
+
+		// Check if the slice includes the require permission code.
+		if !permissions.Include(code) {
+			app.notPermittedResponse(w, r)
+			return
+		}
+
+		next.ServeHTTP(w, r)
+	}
+
+	return app.requireActivatedUser(fn)
+}
