@@ -228,6 +228,9 @@ func (app *application) enableCORS(next http.Handler) http.Handler {
 		// Add the "Vary: Origin" header.
 		w.Header().Set("Vary", "Origin")
 
+		// Add the "Vary: Access-Control-Request-Method" header.
+		w.Header().Set("Vary", "Access-Control-Request-Method")
+
 		// Get the value of the request's Origin header.
 		origin := r.Header.Get("Origin")
 
@@ -238,10 +241,23 @@ func (app *application) enableCORS(next http.Handler) http.Handler {
 				if origin == app.config.cors.trustedOrigins[i] {
 					w.Header().Set("Access-Control-Allow-Origin", origin)
 				}
+
+				// If request has the HTTP method OPTIONS and contains the 'Access-Control-Request-Method' 
+				// header then it's a preflight request.
+				if r.Method == http.MethodOptions && r.Header.Get("Access-Control-Request-Method") != "" {
+					// Add the 'Access-Control-Allow-Methods' header to the response.
+					w.Header().Set("Access-Control-Allow-Methods", "OPTIONS, PUT, PATCH, DELETE")
+					// Add the 'Access-Control-Allow-Headers' header to the response.
+					w.Header().Set("Access-Control-Allow-Headers", "Authorization, Content-Type")	
+
+					// Write the response with a 200 OK status and return from the middleware.
+					w.WriteHeader(http.StatusOK)
+					return
+				}
 			}
 		}
 
-		
+
 		// w.Header().Set("Access-Control-Allow-Origin", "*")
 
 		next.ServeHTTP(w, r)
