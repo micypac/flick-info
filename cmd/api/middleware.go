@@ -6,10 +6,12 @@ import (
 	"fmt"
 	"net"
 	"net/http"
+	"strconv"
 	"strings"
 	"sync"
 	"time"
 
+	"github.com/felixge/httpsnoop"
 	"github.com/micypac/flick-info/internal/data"
 	"github.com/micypac/flick-info/internal/validator"
 	"golang.org/x/time/rate"
@@ -271,21 +273,25 @@ func (app *application) metrics(next http.Handler) http.Handler {
 	totalRequestsReceived := expvar.NewInt("total_requests_received")
 	totalResponsesSent := expvar.NewInt("total_responses_sent")
 	totalProcessingTimeMicroseconds := expvar.NewInt("total_processing_time_μs")
+	totalResponsesSentByStatus := expvar.NewMap("total_responses_sent_by_status")
 
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		start := time.Now()
 
 		// Increment the totalRequestsReceived counter by 1.
 		totalRequestsReceived.Add(1)
 
-		next.ServeHTTP(w, r)
+		// Call the httpsnoop.CaptureMetrics() passing in the handler in the chain along
+		// with the existing ResponseWriter and Request. 
+		metrics := httpsnoop.CaptureMetrics(next, w, r)
 
 		// On the way back up the middleware chain, increment the totalResponsesSent counter by 1.
 		totalResponsesSent.Add(1)
 
 		// Calculate the number of microseconds since the start of the request and
 		// incement the totalProcessingTimeMicroseconds counter by that amount.
-		duration := time.Since(start).Microseconds()
-		totalProcessingTimeMicroseconds.Add(duration)
+		totalProcessingTimeMicroseconds.Add(metrics.Duration.Microseconds())
+
+		// Increment the count for the given status code by 1. 
+		totalResponsesSentByStatus.Add(strconv.Itoa(metrics.Code), 1)
 	})
 }
