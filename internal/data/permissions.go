@@ -67,8 +67,7 @@ func (m PermissionModel) GetAllForUser(userID int64) (Permissions, error) {
 	return permissions, nil
 }
 
-
-// Add the permission codes for a specific user. 
+// Add the permission codes for a specific user.
 // User variadic parameter for the codes to assign multiple permissions in a single call.
 func (m PermissionModel) AddForUser(userID int64, codes ...string) error {
 	stmt := `

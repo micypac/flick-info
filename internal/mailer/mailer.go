@@ -33,7 +33,6 @@ func New(host string, port int, username, password, sender string) Mailer {
 	}
 }
 
-
 // Send() method on the Mailer type. This takes the recipient email address, name of the file containing the templates,
 // and any dynamic data for the templates as an interface{} parameter.
 func (m Mailer) Send(recipient, templateFile string, data interface{}) error {
@@ -43,7 +42,7 @@ func (m Mailer) Send(recipient, templateFile string, data interface{}) error {
 		return err
 	}
 
-	// Execute the named template/s "subject/plainBody/htmlBody", passing in the dynamic data and storing the result in a 
+	// Execute the named template/s "subject/plainBody/htmlBody", passing in the dynamic data and storing the result in a
 	// bytes.Buffer variable.
 	subject := new(bytes.Buffer)
 	err = tmpl.ExecuteTemplate(subject, "subject", data)

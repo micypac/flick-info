@@ -31,18 +31,16 @@ func (app *application) recoverPanic(next http.Handler) http.Handler {
 	})
 }
 
-
-//
 func (app *application) rateLimit(next http.Handler) http.Handler {
 	// Client struct to hold the rate limiter and last seen time for each client(IP address).
 	type client struct {
-		limiter *rate.Limiter
+		limiter  *rate.Limiter
 		lastSeen time.Time
 	}
 
 	// Declare a mutex and a map to hold the clients' struct.
 	var (
-		mu sync.Mutex
+		mu      sync.Mutex
 		clients = make(map[string]*client)
 	)
 
@@ -69,7 +67,7 @@ func (app *application) rateLimit(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		// Carry out the rate limiting checks if the limiter is enabled.
 		if app.config.limiter.enabled {
-		
+
 			// Extract the clients IP address from the request.
 			ip, _, err := net.SplitHostPort(r.RemoteAddr)
 			if err != nil {
@@ -80,7 +78,7 @@ func (app *application) rateLimit(next http.Handler) http.Handler {
 			// Lock the mutex to ensure that the map access is safe.
 			mu.Lock()
 
-			// Check if the IP address already exists in the map. 
+			// Check if the IP address already exists in the map.
 			// If it doesnt, create a new client instance with rate limiter to the map.
 			if _, found := clients[ip]; !found {
 				clients[ip] = &client{
@@ -110,10 +108,9 @@ func (app *application) rateLimit(next http.Handler) http.Handler {
 	})
 }
 
-
 func (app *application) authenticate(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		// Add the 'Vary: Authorization' header to the response. This indicates to any caches that the response 
+		// Add the 'Vary: Authorization' header to the response. This indicates to any caches that the response
 		// may vary based on the value of the Authorization header in the request.
 		w.Header().Add("Vary", "Authorization")
 
@@ -126,7 +123,7 @@ func (app *application) authenticate(next http.Handler) http.Handler {
 			r = app.contextSetUser(r, data.AnonymousUser)
 			next.ServeHTTP(w, r)
 			return
-		}	
+		}
 
 		// Otherwise, we expect the value of the Authorization header to be in the format 'Bearer <token>'.
 		// Split this into it constituent parts, and if its not in the expected format, return 401 Unauthorized response.
@@ -167,7 +164,6 @@ func (app *application) authenticate(next http.Handler) http.Handler {
 	})
 }
 
-
 func (app *application) requireAuthenticatedUser(next http.HandlerFunc) http.HandlerFunc {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		user := app.contextGetUser(r)
@@ -181,7 +177,6 @@ func (app *application) requireAuthenticatedUser(next http.HandlerFunc) http.Han
 		next.ServeHTTP(w, r)
 	})
 }
-
 
 func (app *application) requireActivatedUser(next http.HandlerFunc) http.HandlerFunc {
 	fn := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
@@ -199,7 +194,6 @@ func (app *application) requireActivatedUser(next http.HandlerFunc) http.Handler
 	// Wrap fn with the requireAuthenticatedUser() middleware.
 	return app.requireAuthenticatedUser(fn)
 }
-
 
 func (app *application) requirePermission(code string, next http.HandlerFunc) http.HandlerFunc {
 	fn := func(w http.ResponseWriter, r *http.Request) {
@@ -225,7 +219,6 @@ func (app *application) requirePermission(code string, next http.HandlerFunc) ht
 	return app.requireActivatedUser(fn)
 }
 
-
 func (app *application) enableCORS(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		// Add the "Vary: Origin" header.
@@ -245,13 +238,13 @@ func (app *application) enableCORS(next http.Handler) http.Handler {
 					w.Header().Set("Access-Control-Allow-Origin", origin)
 				}
 
-				// If request has the HTTP method OPTIONS and contains the 'Access-Control-Request-Method' 
+				// If request has the HTTP method OPTIONS and contains the 'Access-Control-Request-Method'
 				// header then it's a preflight request.
 				if r.Method == http.MethodOptions && r.Header.Get("Access-Control-Request-Method") != "" {
 					// Add the 'Access-Control-Allow-Methods' header to the response.
 					w.Header().Set("Access-Control-Allow-Methods", "OPTIONS, PUT, PATCH, DELETE")
 					// Add the 'Access-Control-Allow-Headers' header to the response.
-					w.Header().Set("Access-Control-Allow-Headers", "Authorization, Content-Type")	
+					w.Header().Set("Access-Control-Allow-Headers", "Authorization, Content-Type")
 
 					// Write the response with a 200 OK status and return from the middleware.
 					w.WriteHeader(http.StatusOK)
@@ -260,13 +253,11 @@ func (app *application) enableCORS(next http.Handler) http.Handler {
 			}
 		}
 
-
 		// w.Header().Set("Access-Control-Allow-Origin", "*")
 
 		next.ServeHTTP(w, r)
 	})
 }
-
 
 func (app *application) metrics(next http.Handler) http.Handler {
 	// Init the new expvar variables.
@@ -281,7 +272,7 @@ func (app *application) metrics(next http.Handler) http.Handler {
 		totalRequestsReceived.Add(1)
 
 		// Call the httpsnoop.CaptureMetrics() passing in the handler in the chain along
-		// with the existing ResponseWriter and Request. 
+		// with the existing ResponseWriter and Request.
 		metrics := httpsnoop.CaptureMetrics(next, w, r)
 
 		// On the way back up the middleware chain, increment the totalResponsesSent counter by 1.
@@ -291,7 +282,7 @@ func (app *application) metrics(next http.Handler) http.Handler {
 		// incement the totalProcessingTimeMicroseconds counter by that amount.
 		totalProcessingTimeMicroseconds.Add(metrics.Duration.Microseconds())
 
-		// Increment the count for the given status code by 1. 
+		// Increment the count for the given status code by 1.
 		totalResponsesSentByStatus.Add(strconv.Itoa(metrics.Code), 1)
 	})
 }

@@ -6,7 +6,6 @@ import (
 	"net/http"
 )
 
-
 const html = `
 <!DOCTYPE html>
 <html lang="en">
@@ -45,7 +44,6 @@ const html = `
 </html>
 `
 
-
 func main() {
 	addr := flag.String("addr", ":9000", "Server address")
 	flag.Parse()
@@ -57,5 +55,5 @@ func main() {
 	}))
 
 	log.Fatal(err)
-	
+
 }

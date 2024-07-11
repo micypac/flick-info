@@ -17,7 +17,7 @@ func (app *application) routes() http.Handler {
 	// Use the methodNotAllowedResponse() helper method for the router.
 	router.MethodNotAllowed = http.HandlerFunc(app.methodNotAllowedResponse)
 
-	// Register the relevant methods, URL patterns, and handler functions for the 
+	// Register the relevant methods, URL patterns, and handler functions for the
 	// different endpoints using the HandlerFunc() method.
 	router.HandlerFunc(http.MethodGet, "/v1/healthcheck", app.healthcheckHandler)
 

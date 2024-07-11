@@ -20,15 +20,14 @@ var AnonymousUser = &User{}
 
 // Definition of User struct to represent individual user records.
 type User struct {
-	ID int64 `json:"id"`	
+	ID        int64     `json:"id"`
 	CreatedAt time.Time `json:"created_at"`
-	Name string `json:"name"`
-	Email string `json:"email"`
-	Password password `json:"-"`
-	Activated bool `json:"activated"`
-	Version int `json:"-"`
+	Name      string    `json:"name"`
+	Email     string    `json:"email"`
+	Password  password  `json:"-"`
+	Activated bool      `json:"activated"`
+	Version   int       `json:"-"`
 }
-
 
 func (u *User) IsAnonymous() bool {
 	return u == AnonymousUser
@@ -37,9 +36,8 @@ func (u *User) IsAnonymous() bool {
 // Custom password type containing the plain text and hashed versions of the password.
 type password struct {
 	plaintext *string
-	hash []byte
+	hash      []byte
 }
-
 
 // Set() method calculates the bcrypt hash of the plaintext password and stores both the plain and hashed version in the struct.
 func (p *password) Set(plaintextPW string) error {
@@ -53,7 +51,6 @@ func (p *password) Set(plaintextPW string) error {
 
 	return nil
 }
-
 
 // The Matches() method checks whether the provided plaintext password matches the hashed password stored in the struct.
 func (p *password) Matches(plaintextPW string) (bool, error) {
@@ -69,7 +66,6 @@ func (p *password) Matches(plaintextPW string) (bool, error) {
 
 	return true, nil
 }
-
 
 func ValidateEmail(v *validator.Validator, email string) {
 	v.Check(email != "", "email", "must be provided")
@@ -97,7 +93,6 @@ func ValidateUser(v *validator.Validator, user *User) {
 		panic("missing password hash for user")
 	}
 }
-
 
 // UserModel struct to hold the methods for querying and modifying user records in the database.
 type UserModel struct {
@@ -130,7 +125,6 @@ func (m UserModel) Insert(user *User) error {
 
 	return nil
 }
-
 
 // Retrieve the user details from the db based on the email address.
 func (m UserModel) GetByEmail(email string) (*User, error) {
@@ -166,7 +160,6 @@ func (m UserModel) GetByEmail(email string) (*User, error) {
 	return &user, nil
 }
 
-
 // Update user information in the db.
 func (m UserModel) Update(user *User) error {
 	stmt := `
@@ -176,11 +169,11 @@ func (m UserModel) Update(user *User) error {
 		RETURNING version`
 
 	args := []interface{}{
-		user.Name, 
-		user.Email, 
-		user.Password.hash, 
-		user.Activated, 
-		user.ID, 
+		user.Name,
+		user.Email,
+		user.Password.hash,
+		user.Activated,
+		user.ID,
 		user.Version,
 	}
 
@@ -202,7 +195,6 @@ func (m UserModel) Update(user *User) error {
 	return nil
 }
 
-
 func (m UserModel) GetForToken(tokenScope, TokenPlaintext string) (*User, error) {
 	// Calculate SHA-256 hash of the plaintext token.
 	tokenHash := sha256.Sum256([]byte(TokenPlaintext))
@@ -216,7 +208,7 @@ func (m UserModel) GetForToken(tokenScope, TokenPlaintext string) (*User, error)
 		AND tokens.scope = $2
 		AND tokens.expiry > $3
 	`
-	
+
 	// Create a slice containing the query arguments.
 	args := []interface{}{tokenHash[:], tokenScope, time.Now()}
 

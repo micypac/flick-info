@@ -18,10 +18,9 @@ import (
 	_ "github.com/lib/pq"
 )
 
-
 const version = "1.0.0"
 
-// Holds all configuration settings for the app. 
+// Holds all configuration settings for the app.
 // Read the config settings from command-line flags when the app starts.
 // port - the network port the server is listening on
 // env - current operating env for the app(dev, staging, prod, etc.)
@@ -29,44 +28,43 @@ const version = "1.0.0"
 // limiter - hold the config setting for the rate limiter containing the request per second, burst and switch flag.
 type config struct {
 	port int
-	env string
-	db struct {
-		dsn string
+	env  string
+	db   struct {
+		dsn          string
 		maxOpenConns int
 		maxIdleConns int
-		maxIdleTime string
+		maxIdleTime  string
 	}
 	limiter struct {
-		rps float64
-		burst int
+		rps     float64
+		burst   int
 		enabled bool
 	}
 	smtp struct {
-		host string
-		port int
+		host     string
+		port     int
 		username string
 		password string
-		sender string
+		sender   string
 	}
 	cors struct {
 		trustedOrigins []string
 	}
 }
 
-// App struct holds the dependencies for HTTP handlers, helpers, and middleware. 
+// App struct holds the dependencies for HTTP handlers, helpers, and middleware.
 type application struct {
 	config config
 	logger *jsonlog.Logger
 	models data.Models
 	mailer mailer.Mailer
-	wg sync.WaitGroup
+	wg     sync.WaitGroup
 }
-
 
 func main() {
 	var cfg config
 
-	// Read the value of command-line flags into the config struct. 
+	// Read the value of command-line flags into the config struct.
 	// Port# 4000 and "dev" environment default if no corresponding flags are provided.
 	flag.IntVar(&cfg.port, "port", 4000, "API server port")
 	flag.StringVar(&cfg.env, "env", "development", "Environment (development|staging|production)")
@@ -157,7 +155,7 @@ func openDB(cfg config) (*sql.DB, error) {
 	db.SetConnMaxIdleTime(duration)
 
 	// Create a context with 5sec timeout deadline.
-	ctx, cancel := context.WithTimeout(context.Background(), 5 * time.Second)
+	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 	defer cancel()
 
 	// Use PingContext() to establish a new connection to the db.

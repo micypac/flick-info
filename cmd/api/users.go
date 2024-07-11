@@ -12,8 +12,8 @@ import (
 func (app *application) registerUserHandler(w http.ResponseWriter, r *http.Request) {
 	// Anonymous input struct to hold the expected data from the request body.
 	var input struct {
-		Name string `json:"name"`
-		Email string `json:"email"`
+		Name     string `json:"name"`
+		Email    string `json:"email"`
 		Password string `json:"password"`
 	}
 
@@ -26,8 +26,8 @@ func (app *application) registerUserHandler(w http.ResponseWriter, r *http.Reque
 
 	// Copy the values from the input struct to a new User struct.
 	user := &data.User{
-		Name: input.Name,
-		Email: input.Email,
+		Name:      input.Name,
+		Email:     input.Email,
 		Activated: false,
 	}
 
@@ -72,14 +72,12 @@ func (app *application) registerUserHandler(w http.ResponseWriter, r *http.Reque
 		return
 	}
 
-
 	// Use the background() helper to execute an anonymous function that sends the welcome email.
 	app.background(func() {
 		data := map[string]interface{}{
 			"activationToken": token.Plaintext,
-			"userID": user.ID,
+			"userID":          user.ID,
 		}
-
 
 		// Call the Send() method on the Mailer, passing in the user's email address,
 		// name of the template file, and the User struct containing the dynamic data.
@@ -87,20 +85,19 @@ func (app *application) registerUserHandler(w http.ResponseWriter, r *http.Reque
 		if err != nil {
 			app.logger.PrintError(err, nil)
 		}
-	
+
 	})
 
 	err = app.writeJSON(w, http.StatusCreated, envelope{"user": user}, nil)
 	if err != nil {
 		app.serverErrorResponse(w, r, err)
-	}	
+	}
 }
-
 
 func (app *application) activateUserHandler(w http.ResponseWriter, r *http.Request) {
 	// Parse the activation token from the request body.
 	var input struct {
-		TokenPlaintext	string `json:"token"`
+		TokenPlaintext string `json:"token"`
 	}
 
 	err := app.readJSON(w, r, &input)
@@ -122,11 +119,11 @@ func (app *application) activateUserHandler(w http.ResponseWriter, r *http.Reque
 	user, err := app.models.Users.GetForToken(data.ScopeActivation, input.TokenPlaintext)
 	if err != nil {
 		switch {
-			case errors.Is(err, data.ErrRecordNotFound):
-				v.AddError("token", "invalid or expired activation token")
-				app.failedValidationResponse(w, r, v.Errors)
-			default:
-				app.serverErrorResponse(w, r, err)
+		case errors.Is(err, data.ErrRecordNotFound):
+			v.AddError("token", "invalid or expired activation token")
+			app.failedValidationResponse(w, r, v.Errors)
+		default:
+			app.serverErrorResponse(w, r, err)
 		}
 		return
 	}
@@ -138,10 +135,10 @@ func (app *application) activateUserHandler(w http.ResponseWriter, r *http.Reque
 	err = app.models.Users.Update(user)
 	if err != nil {
 		switch {
-			case errors.Is(err, data.ErrEditConflict):
-				app.editConflictResponse(w, r)
-			default:
-				app.serverErrorResponse(w, r, err)
+		case errors.Is(err, data.ErrEditConflict):
+			app.editConflictResponse(w, r)
+		default:
+			app.serverErrorResponse(w, r, err)
 		}
 		return
 	}

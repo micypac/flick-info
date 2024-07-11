@@ -13,15 +13,14 @@ import (
 )
 
 type Movie struct {
-	ID 				int64				`json:"id"`									// Unique integer id for the movie.
-	CreatedAt time.Time		`json:"-"`									// Timestamp when the movie is added to the db. '-' struct tag directive to hide in the output.
-	Title 		string			`json:"title"`		
-	Year 			int32				`json:"year,omitempty"`			// Release year. 'omitempty' struct directive to hide field in the output if the it is zero value.
-	Runtime 	Runtime			`json:"runtime,omitempty"`	// Runtime (in minutes).
-	Genres 		[]string		`json:"genres,omitempty"`		// Genres of the movie.
-	Version 	int32				`json:"version"`						// Version starts at 1 and incremented when movie info is updated.
+	ID        int64     `json:"id"` // Unique integer id for the movie.
+	CreatedAt time.Time `json:"-"`  // Timestamp when the movie is added to the db. '-' struct tag directive to hide in the output.
+	Title     string    `json:"title"`
+	Year      int32     `json:"year,omitempty"`    // Release year. 'omitempty' struct directive to hide field in the output if the it is zero value.
+	Runtime   Runtime   `json:"runtime,omitempty"` // Runtime (in minutes).
+	Genres    []string  `json:"genres,omitempty"`  // Genres of the movie.
+	Version   int32     `json:"version"`           // Version starts at 1 and incremented when movie info is updated.
 }
-
 
 func ValidateMovie(v *validator.Validator, movie *Movie) {
 	v.Check(movie.Title != "", "title", "must be provided")
@@ -41,14 +40,12 @@ func ValidateMovie(v *validator.Validator, movie *Movie) {
 	v.Check(validator.Unique(movie.Genres), "genres", "must not contain duplicate values")
 }
 
-
 type MovieModel struct {
 	DB *sql.DB
 }
 
-
 // GetAll() return a slice of movies.
-func(m MovieModel) GetAll(title string, genres []string, filters Filters) ([]*Movie, Metadata, error) {
+func (m MovieModel) GetAll(title string, genres []string, filters Filters) ([]*Movie, Metadata, error) {
 	stmt := fmt.Sprintf(`
 		SELECT count(*) OVER(), id, created_at, title, year, runtime, genres, version
 		FROM movies
@@ -58,7 +55,7 @@ func(m MovieModel) GetAll(title string, genres []string, filters Filters) ([]*Mo
 		LIMIT $3 OFFSET $4
 	`, filters.sortColumn(), filters.sortDirection())
 
-	ctx, cancel := context.WithTimeout(context.Background(), 3 * time.Second)
+	ctx, cancel := context.WithTimeout(context.Background(), 3*time.Second)
 	defer cancel()
 
 	rows, err := m.DB.QueryContext(ctx, stmt, title, pq.Array(genres), filters.limit(), filters.offset())
@@ -96,18 +93,17 @@ func(m MovieModel) GetAll(title string, genres []string, filters Filters) ([]*Mo
 		movies = append(movies, &movie)
 	}
 
-	// When rows.Next() loop finished, call rows.Err() to retrieve any error that 
+	// When rows.Next() loop finished, call rows.Err() to retrieve any error that
 	// was encounterd during the iteration.
 	if err = rows.Err(); err != nil {
 		return nil, Metadata{}, err
 	}
 
-	// Generate a Metadata struct, passing in the total record count and 
+	// Generate a Metadata struct, passing in the total record count and
 	// pagination parameters from the client.
 	metadata := calculateMetadata(totalRecords, filters.Page, filters.PageSize)
-	
-	return movies, metadata, nil
 
+	return movies, metadata, nil
 
 }
 
@@ -122,7 +118,7 @@ func (m MovieModel) Insert(movie *Movie) error {
 	// Create a slice containing the values for the placeholder parameters from the Movie struct.
 	args := []interface{}{movie.Title, movie.Year, movie.Runtime, pq.Array(movie.Genres)}
 
-	ctx, cancel := context.WithTimeout(context.Background(), 3 * time.Second)
+	ctx, cancel := context.WithTimeout(context.Background(), 3*time.Second)
 
 	defer cancel()
 
@@ -130,7 +126,6 @@ func (m MovieModel) Insert(movie *Movie) error {
 	// as a variadic parameter and scanning the system-generated values into the movie struct.
 	return m.DB.QueryRowContext(ctx, stmt, args...).Scan(&movie.ID, &movie.CreatedAt, &movie.Version)
 }
-
 
 func (m MovieModel) Get(id int64) (*Movie, error) {
 	// The PostgreSQL bigserial type for the movie ID starts auto-incrementing at 1 by default.
@@ -147,7 +142,7 @@ func (m MovieModel) Get(id int64) (*Movie, error) {
 	var movie Movie
 
 	// Use context.WithTimeout() function to create a context w/c carries a 3sec timeout deadline.
-	ctx, cancel := context.WithTimeout(context.Background(), 3 * time.Second)
+	ctx, cancel := context.WithTimeout(context.Background(), 3*time.Second)
 
 	// Use defer to make sure we cancel the context before the Get() method returns.
 	defer cancel()
@@ -175,7 +170,6 @@ func (m MovieModel) Get(id int64) (*Movie, error) {
 	return &movie, nil
 }
 
-
 func (m MovieModel) Update(movie *Movie) error {
 	stmt := `
 		UPDATE movies 
@@ -193,7 +187,7 @@ func (m MovieModel) Update(movie *Movie) error {
 		movie.Version,
 	}
 
-	ctx, cancel := context.WithTimeout(context.Background(), 3 * time.Second)
+	ctx, cancel := context.WithTimeout(context.Background(), 3*time.Second)
 	defer cancel()
 
 	err := m.DB.QueryRowContext(ctx, stmt, args...).Scan(&movie.Version)
@@ -209,7 +203,6 @@ func (m MovieModel) Update(movie *Movie) error {
 	return nil
 }
 
-
 func (m MovieModel) Delete(id int64) error {
 	if id < 1 {
 		return ErrRecordNotFound
@@ -220,7 +213,7 @@ func (m MovieModel) Delete(id int64) error {
 		WHERE id = $1	
 	`
 
-	ctx, cancel := context.WithTimeout(context.Background(), 3 * time.Second)
+	ctx, cancel := context.WithTimeout(context.Background(), 3*time.Second)
 	defer cancel()
 
 	result, err := m.DB.ExecContext(ctx, stmt, id)
@@ -240,4 +233,3 @@ func (m MovieModel) Delete(id int64) error {
 
 	return nil
 }
-

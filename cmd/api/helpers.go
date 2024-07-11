@@ -20,7 +20,7 @@ type envelope map[string]interface{}
 // Retrieve the "id" URL parameter from the current request context, convert it
 // integer and return it. If operation fails, return 0 and error.
 func (app *application) readIDParam(r *http.Request) (int64, error) {
-	// Any interpolated URL parameters will be stored in the request context. 
+	// Any interpolated URL parameters will be stored in the request context.
 	// httprouter.ParamsFromContext() will retrieve a slice containing parameter names and values.
 	params := httprouter.ParamsFromContext(r.Context())
 
@@ -33,8 +33,7 @@ func (app *application) readIDParam(r *http.Request) (int64, error) {
 	return id, nil
 }
 
-
-// Helper method for sending JSON responses. It takes the destination ResponseWriter, HTTP status code to send, 
+// Helper method for sending JSON responses. It takes the destination ResponseWriter, HTTP status code to send,
 // the data to encode to JSON, and header map containing HTTP headers to set.
 func (app *application) writeJSON(w http.ResponseWriter, status int, data envelope, headers http.Header) error {
 	// Encode the data to JSON by passing to the json.Marshal() function. This returns a []byte slice containing the encoded JSON.
@@ -62,7 +61,6 @@ func (app *application) writeJSON(w http.ResponseWriter, status int, data envelo
 	return nil
 }
 
-
 // Helper method for reading JSON request. Decode the JSON from the request body then triage the errors and
 // replace them with custom message if necessary.
 func (app *application) readJSON(w http.ResponseWriter, r *http.Request, dst interface{}) error {
@@ -74,7 +72,7 @@ func (app *application) readJSON(w http.ResponseWriter, r *http.Request, dst int
 	// If the JSON request have fields that cannot be mapped to the target destination, it will error.
 	dec := json.NewDecoder(r.Body)
 	dec.DisallowUnknownFields()
-	
+
 	// Use the Decode() method to decode the body contents into the pointer input struct.
 	err := dec.Decode(dst)
 	if err != nil {
@@ -85,7 +83,7 @@ func (app *application) readJSON(w http.ResponseWriter, r *http.Request, dst int
 		switch {
 		case errors.As(err, &syntaxError):
 			return fmt.Errorf("body contains badly-formed JSON (at character %d)", syntaxError.Offset)
-		
+
 		case errors.Is(err, io.ErrUnexpectedEOF):
 			return errors.New("body contains badly-formed JSON")
 
@@ -94,7 +92,7 @@ func (app *application) readJSON(w http.ResponseWriter, r *http.Request, dst int
 				return fmt.Errorf("body contains incorrect JSON type for field %q", unmarshalTypeError.Field)
 			}
 			return fmt.Errorf("body contains incorrect JSON type (at character %d)", unmarshalTypeError.Offset)
-			
+
 		case errors.Is(err, io.EOF):
 			return errors.New("body must not be empty")
 
@@ -126,8 +124,7 @@ func (app *application) readJSON(w http.ResponseWriter, r *http.Request, dst int
 	return nil
 }
 
-
-// readString() helper returns a string value from the query string, or provided default value 
+// readString() helper returns a string value from the query string, or provided default value
 // if no matching key could be found.
 func (app *application) readString(qs url.Values, key string, defaultValue string) string {
 	// Extract the value for a given key from the query string. If no key exists, this will return empty string "".
@@ -140,7 +137,6 @@ func (app *application) readString(qs url.Values, key string, defaultValue strin
 	return s
 }
 
-
 // readCSV() helper returns a string slice from the comma-separated query string values.
 func (app *application) readCSV(qs url.Values, key string, defaultValue []string) []string {
 	csv := qs.Get(key)
@@ -151,7 +147,6 @@ func (app *application) readCSV(qs url.Values, key string, defaultValue []string
 
 	return strings.Split(csv, ",")
 }
-
 
 // readInt helper returns an int value from query string.
 func (app *application) readInt(qs url.Values, key string, defaultValue int, v *validator.Validator) int {
@@ -170,7 +165,6 @@ func (app *application) readInt(qs url.Values, key string, defaultValue int, v *
 	return i
 }
 
-
 // background helper method accepts an arbitrary function as a parameter.
 func (app *application) background(fn func()) {
 	// Increment the wait group counter.
@@ -179,7 +173,7 @@ func (app *application) background(fn func()) {
 	go func() {
 		// Use defer to decrement the wait group counter when the goroutine completes.
 		defer app.wg.Done()
-		
+
 		// Recover any panic
 		defer func() {
 			if err := recover(); err != nil {

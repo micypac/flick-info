@@ -13,18 +13,18 @@ import (
 
 // Define constants for the token scope.
 const (
-	ScopeActivation = "activation"
+	ScopeActivation     = "activation"
 	ScopeAuthentication = "authentication"
 )
 
-// Token struct definition that holds the data for a token. 
+// Token struct definition that holds the data for a token.
 // This includes plaintext and hashed versions of the token, associated user ID, expiry time, and scope.
 type Token struct {
-	Plaintext string		`json:"token"`
-	Hash 			[]byte		`json:"-"`
-	UserID 		int64			`json:"-"`
-	Expiry 		time.Time	`json:"expiry"`
-	Scope 		string		`json:"-"`
+	Plaintext string    `json:"token"`
+	Hash      []byte    `json:"-"`
+	UserID    int64     `json:"-"`
+	Expiry    time.Time `json:"expiry"`
+	Scope     string    `json:"-"`
 }
 
 func generateToken(userID int64, ttl time.Duration, scope string) (*Token, error) {
@@ -32,7 +32,7 @@ func generateToken(userID int64, ttl time.Duration, scope string) (*Token, error
 	token := &Token{
 		UserID: userID,
 		Expiry: time.Now().Add(ttl),
-		Scope: scope,
+		Scope:  scope,
 	}
 
 	// Initialize a zero-value byte slice with a length of 16 bytes.
@@ -56,7 +56,6 @@ func generateToken(userID int64, ttl time.Duration, scope string) (*Token, error
 
 	return token, nil
 }
-
 
 // Check that the plaintext token provided is exactly 52bytes long.
 func ValidateTokenPlaintext(v *validator.Validator, tokenPlaintext string) {
@@ -93,7 +92,6 @@ func (m TokenModel) Insert(token *Token) error {
 	_, err := m.DB.ExecContext(ctx, stmt, args...)
 	return err
 }
-
 
 // DeleteAllForUser() deletes all tokens for a specific user and scope.
 func (m TokenModel) DeleteAllForUser(scope string, userID int64) error {

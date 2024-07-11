@@ -11,11 +11,11 @@ import (
 
 func (app *application) createMovieHandler(w http.ResponseWriter, r *http.Request) {
 	// Declare an anonymous struct to hold the info we expect to be in the request body.
-	var input struct{
-		Title 		string 				`json:"title"`
-		Year 			int32 				`json:"year"`
-		Runtime 	data.Runtime 	`json:"runtime"`
-		Genres 		[]string 			`json:"genres"`
+	var input struct {
+		Title   string       `json:"title"`
+		Year    int32        `json:"year"`
+		Runtime data.Runtime `json:"runtime"`
+		Genres  []string     `json:"genres"`
 	}
 
 	// Use the readJSON() helper method to decode the request body into the input struct.
@@ -27,10 +27,10 @@ func (app *application) createMovieHandler(w http.ResponseWriter, r *http.Reques
 
 	// Copy the values from input struct to new Movie struct.
 	movie := &data.Movie{
-		Title: input.Title,
-		Year: input.Year,
+		Title:   input.Title,
+		Year:    input.Year,
 		Runtime: input.Runtime,
-		Genres: input.Genres,
+		Genres:  input.Genres,
 	}
 
 	// Initialize a new Validator instance.
@@ -60,7 +60,6 @@ func (app *application) createMovieHandler(w http.ResponseWriter, r *http.Reques
 	}
 }
 
-
 func (app *application) showMovieHandler(w http.ResponseWriter, r *http.Request) {
 	// Read "id" URL parameter.
 	id, err := app.readIDParam(r)
@@ -80,7 +79,7 @@ func (app *application) showMovieHandler(w http.ResponseWriter, r *http.Request)
 		}
 		return
 	}
-	
+
 	// Encode the struct to JSON and send it as the HTTP response. Enclose the Movie struct instance to 'envelope' type.
 	err = app.writeJSON(w, http.StatusOK, envelope{"movie": movie}, nil)
 	if err != nil {
@@ -88,8 +87,7 @@ func (app *application) showMovieHandler(w http.ResponseWriter, r *http.Request)
 	}
 }
 
-
-func(app *application) updateMovieHandler(w http.ResponseWriter, r *http.Request) {
+func (app *application) updateMovieHandler(w http.ResponseWriter, r *http.Request) {
 	id, err := app.readIDParam(r)
 	if err != nil {
 		app.notFoundResponse(w, r)
@@ -109,11 +107,11 @@ func(app *application) updateMovieHandler(w http.ResponseWriter, r *http.Request
 	}
 
 	// Declare an input struct to hold the expected data from the client.
-	var input struct{
-		Title 	*string 			`json:"title"`
-		Year 		*int32 				`json:"year"`
+	var input struct {
+		Title   *string       `json:"title"`
+		Year    *int32        `json:"year"`
 		Runtime *data.Runtime `json:"runtime"`
-		Genres 	[]string 			`json:"genres"`
+		Genres  []string      `json:"genres"`
 	}
 
 	// Read JSON request body into the input struct.
@@ -165,7 +163,6 @@ func(app *application) updateMovieHandler(w http.ResponseWriter, r *http.Request
 	}
 }
 
-
 func (app *application) deleteMovieHandler(w http.ResponseWriter, r *http.Request) {
 	id, err := app.readIDParam(r)
 	if err != nil {
@@ -190,11 +187,10 @@ func (app *application) deleteMovieHandler(w http.ResponseWriter, r *http.Reques
 	}
 }
 
-
 func (app *application) listMoviesHandler(w http.ResponseWriter, r *http.Request) {
 	// Define input struct to hold expected values from the request query string. Embed the separate Filters struct.
 	var input struct {
-		Title string
+		Title  string
 		Genres []string
 		data.Filters
 	}
