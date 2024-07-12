@@ -5,6 +5,7 @@ import (
 	"database/sql"
 	"expvar"
 	"flag"
+	"fmt"
 	"os"
 	"runtime"
 	"strings"
@@ -18,7 +19,12 @@ import (
 	_ "github.com/lib/pq"
 )
 
-const version = "1.0.0"
+
+
+var (
+	buildTime string
+	version   string
+)
 
 // Holds all configuration settings for the app.
 // Read the config settings from command-line flags when the app starts.
@@ -87,7 +93,16 @@ func main() {
 		return nil
 	})
 
+	// Create a new version boolean flag with the default value false.
+	displayVersion := flag.Bool("version", false, "Display version and exit")
+
 	flag.Parse()
+
+	if *displayVersion {
+		fmt.Printf("Version:\t%s\n", version)
+		fmt.Printf("Build time:\t%s\n", buildTime)
+		os.Exit(0)
+	}
 
 	// Initialize a new jsonlog.Logger which writes messages *at or above* the INFO sev level
 	// to the standard out stream.
